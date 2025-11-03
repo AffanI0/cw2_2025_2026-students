@@ -251,25 +251,24 @@ class NMT(nn.Module):
             Note: You will not use this outside of this function. We are simply returning this value so that we can sanity check
                     your implementation.
         """
-
-        
         # 1. Apply decoder to Ybar_t and dec_state
         dec_hidden, dec_cell = self.decoder(Ybar_t, dec_state)
         dec_state = (dec_hidden, dec_cell)
-
-        ### Your code here (~8-15 lines) ###
-        raise NotImplementedError("Implement the step function in nmt_model.py")
-
+        
         # Dot-product attention
         # 2. Compute attention scores e_t
         # Need to compute batched matrix multiplication between dec_hidden and enc_hiddens_proj
         # dec_hidden has a shape of (b, h), enc_hiddens_proj is (b, src_len, h)
         # We want to end up with a shape of (b, src_len)
+        e_t = dec_hidden @ enc_hiddens_proj
+        e_t = e_t.transpose(1, 2)  #(b, src_len) shape
 
         # If enc_masks is None, this step should be skipped
         # Use bool() to convert ByteTensor to BoolTensor
         # Use float("-inf") to represent -inf
         # Use masked_fill_ to fill in -inf at the masked positions
+        if enc_masks is not None:
+            e_t.masked_fill_(enc_masks.bool(), float("-inf"))
 
         # 3. Apply softmax to e_t to yield alpha_t of shape (b, src_len)
 
