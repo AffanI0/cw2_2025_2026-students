@@ -139,7 +139,8 @@ class CausalSelfAttention(nn.Module):
         attention_scores = (q @ k.transpose(-2, -1)) / math.sqrt(hs)
 
         # Step 3: Masking out the future tokens (causal) and softmax
-        attention_scores = attention_scores.masked_fill(self.mask == 0, float("-inf"))
+        mask = self.mask[:, :, :T, :T]
+        attention_scores = attention_scores.masked_fill(mask == 0, float("-inf"))
         attention = torch.softmax(attention_scores, dim=-1)
 
         # Step 4: Compute the attention output
