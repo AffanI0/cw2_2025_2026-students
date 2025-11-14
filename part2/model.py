@@ -121,23 +121,40 @@ class CausalSelfAttention(nn.Module):
                 attentions: (optional) Tensor of shape (B, nh, T, T) where nh is the number of heads.
         """
         B, T, C = x.size()
-        ### Your code here (~8-15 lines) ###
-        raise NotImplementedError("Implement the forward method in CausalSelfAttention in model.py")
         # Step 1: Calculate query, key, values for all heads
         # (B, nh, T, hs)
+        #get (B, T, C)
+        q = self.query(x)
+        k = self.key(x)
+        v = self.value(x)
+
+        hs = C // self.n_head
+        #reshape to (B, nh, T, hs)
+        q = q.view(B, T, self.n_head, hs).transpose(1, 2)
+        k = k.view(B, T, self.n_head, hs).transpose(1, 2)
+        v = v.view(B, T, self.n_head, hs).transpose(1, 2)
       
         # Step 2: Compute attention scores
         # Self-attend: (B, nh, T, hs) x (B, nh, hs, T) -> (B, nh, T, T)
+        attention_scores = (q @ k.transpose(-2, -1)) / math.sqrt(hs)
 
         # Step 3: Masking out the future tokens (causal) and softmax
+        attention_scores = attention_scores.masked_fill(self.mask == 0, float("-inf"))
+        attention = torch.softmax(attention_scores, dim=-1)
 
         # Step 4: Compute the attention output
         # (B, nh, T, T) x (B, nh, T, hs) -> (B, nh, T, hs)
+        y = attention @ v
 
         # Step 5: re-assemble all head outputs side by side
         # (B, T, nh, hs) -> (B, T, C)
+        y = y.transpose(1, 2)
+        y = torch.reshape(y, (B, T, C))
 
         # Step 6: output projection + dropout
+        y = self.proj(y)
+        y = self.resid_drop(y)
+
         ### End of your code ###
         return GPTAttentionOutput(output=y, attentions=attention)
 
